@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Profile</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f0f2f5;
+    }
+    .container {
+      max-width: 600px;
+      margin-top: 60px;
+    }
+    .card {
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    #message {
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h3 class="mb-4 text-center">User Profile</h3>
+
+    <div id="profile" class="mb-4"></div>
+
+    <form id="updateForm">
+      <div class="mb-3">
+        <input type="text" id="username" class="form-control" placeholder="New Username" required>
+      </div>
+      <div class="mb-3">
+        <input type="email" id="email" class="form-control" placeholder="New Email" required>
+      </div>
+      <div class="mb-3">
+        <input type="text" id="phone_number" class="form-control" placeholder="New Phone" required>
+      </div>
+       <div class="mb-3">
+      <label for="profile_image" class="form-label">Profile Image</label>
+      <input type="file" id="profile_image" name="profile_image" class="form-control">
+      </div>
+      <div class="d-grid gap-2">
+        <button type="button" id="patchBtn" class="btn btn-warning text-white">Partial Update (PATCH)</button>
+        <button type="button" id="deleteBtn" class="btn btn-danger">Delete Account</button>
+         <button type="button" id="logoutBtn" class="btn btn-danger">Logout Account</button>
+      </div>
+    </form>
+
+    <div id="message"></div>
+  </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+  const token = localStorage.getItem("access_token");
+
+  // Load profile
+  $.ajax({
+    url: '/api/profile/',
+    type: 'GET',
+    headers: { 'Authorization': `Bearer ${token}` },
+    success: function(data) {
+      $('#profile').html(`
+        <p><strong>Username:</strong> ${data.username}</p>
+        <p><strong>Email:</strong> ${data.email}</p>
+        <p><strong>Phone:</strong> ${data.phone_number}</p>
+        <p><strong>Image:</strong><br><img src="${data.profile_image}" width="120" height="120" style="border-radius: 8px;" /></p>
+        
+      `);
+      $('#username').val(data.username);
+      $('#email').val(data.email);
+      $('#phone_number').val(data.phone_number);
+      
+    },
+    error: function() {
+      $('#profile').html('<div class="alert alert-danger">Error loading profile. Please login again.</div>');
+    }
+  });
+
+
+  // PATCH - Partial update
+  $('#patchBtn').click(function () {
+  const formData = new FormData();
+  const imageFile = $('#profile_image')[0].files[0];
+
+  formData.append('username', $('#username').val());
+  formData.append('email', $('#email').val());
+  formData.append('phone_number', $('#phone_number').val());
+  if (imageFile) {
+    formData.append('profile_image', imageFile);
+  }
+
+  $.ajax({
+    url: '/api/profile/',
+    type: 'PATCH',
+    processData: false,
+    contentType: false,
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    data: formData,
+    success: function (res) {
+      $('#message').html('<div class="alert alert-success">Profile partially updated!</div>');
+      location.reload();  // Refresh profile info
+    },
+    error: function (xhr) {
+      $('#message').html('<div class="alert alert-danger">Partial update failed.</div>');
+    }
+  });
+});
+
+
+  // DELETE - Account
+  $('#deleteBtn').click(function() {
+    if (confirm("Are you sure you want to delete your account? This cannot be undone.")) {
+      $.ajax({
+        url: '/api/profile/',
+        type: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+        success: function() {
+          localStorage.removeItem('access_token');
+          $('#message').html('<div class="alert alert-danger">Account deleted. Redirecting...</div>');
+          setTimeout(() => window.location.href = '/login-page/', 1500);
+        },
+        error: function() {
+          $('#message').html('<div class="alert alert-danger">Error deleting account.</div>');
+        }
+      });
+    }
+  });
+
+  // Logout
+  $('#logoutBtn').click(function() {
+  if (confirm("Are you sure you want to logout your account?")) {
+    $.ajax({
+      url: '/api/logout/',
+      type: 'POST',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+      },
+      success: function(response) {
+        localStorage.removeItem('access_token');
+        alert('Logged out successfully!');
+        window.location.href = '/login-page/';
+      },
+      error: function(xhr) {
+        alert('Logout failed: ' + xhr.responseText);
+      }
+    });
+  }
+});
+
+</script>
+
+</body>
+</html>

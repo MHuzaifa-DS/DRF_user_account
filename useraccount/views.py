@@ -173,6 +173,61 @@ def send_logout_email(user):
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
 
 
+#Send email for forgot password 
+
+class ForgotPasswordView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = f"http://127.0.0.1:8000/reset-password/?uid={uid}&token={token}"
+            
+            subject = "Password Reset"
+            message = f"Click the link to reset your password: {reset_url}"
+            send_mail(subject, message, "no-reply@example.com", [email])
+            return Response({"message": "Password reset email sent."})
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        
+#Send email for reset password
+
+
+class ResetPasswordView(APIView):
+    def get(self, request, uid, token):
+        return Response({"detail": "This endpoint only accepts POST requests."}, status=405)
+
+    def post(self, request, uid, token):
+        password = request.data.get("password")
+        confirm_password = request.data.get("confirm_password")
+
+        try:
+            validate_strong_password(password)
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if password != confirm_password:
+            return Response({"error": "Passwords do not match"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = urlsafe_base64_decode(uid).decode()
+            user = User.objects.get(pk=uid)
+        except (User.DoesNotExist, ValueError):
+            return Response({"error": "Invalid UID"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(password)
+        user.save()
+        return Response({"message": "Password reset successful."})
+
+
+
 #html templates
 def register_page(request):
     return render(request, 'register.html')
@@ -189,6 +244,11 @@ def profile_page(request):
 def success(request):
     return render(request, 'success.html')
 
-
 def token_send(request):
     return render(request, 'token_send.html')
+
+def forgot_password(request):
+    return render(request, 'forgot_password.html')
+
+def reset_password(request):
+    return render(request, 'reset_password.html')

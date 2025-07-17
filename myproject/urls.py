@@ -20,8 +20,8 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from useraccount.views import RegisterView , LoginView , ProfileView , register_page , login_page , profile_page , token_send , success
-from useraccount.views import VerifyEmailView , LogoutView
+from useraccount.views import RegisterView , LoginView , ProfileView , register_page , login_page , profile_page , token_send , success , forgot_password , reset_password
+from useraccount.views import VerifyEmailView , LogoutView , ForgotPasswordView , ResetPasswordView
 from django.conf.urls.static import static
 from django.conf import settings
 
@@ -35,6 +35,8 @@ urlpatterns = [
     path('api/profile/', ProfileView.as_view(), name='profile'),
     path('api/logout/',LogoutView.as_view(), name='logout'),
     path('verify-email/<uidb64>/<token>/', VerifyEmailView.as_view(), name='verify-email'),
+    path("forgot_password/", ForgotPasswordView.as_view(), name="forgot-password"),
+    path("reset-password/<uid>/<token>/", ResetPasswordView.as_view(), name="reset-password"),
     
     
     
@@ -43,7 +45,9 @@ urlpatterns = [
     path('login-page/', login_page),
     path('profile-page/', profile_page),
     path('token/', token_send , name='token_send'),
-    path('success/', success , name='success')
+    path('success/', success , name='success'),
+    path('forgot-password/', forgot_password , name='forgot_password'),
+    path('reset-password/', reset_password , name='reset_password')
 ]
 
 
